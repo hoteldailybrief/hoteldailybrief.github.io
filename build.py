@@ -23,6 +23,9 @@ TAGLINE = "국내외 호텔 브랜드, 신규 개발·개관, 관광 수요, 수
 # 구글 폼 등 구독 신청 링크. 비어 있으면 '준비 중' 버튼으로 표시된다.
 SUBSCRIBE_URL = ""
 
+# 구글 애널리틱스 측정 ID. 비우면 통계 코드를 넣지 않는다.
+GA_ID = "G-L6K60HNP76"
+
 WEEKDAYS = "월화수목금토일"
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
@@ -51,12 +54,20 @@ def first_title(i):
     return items[0]["title"] if items else ""
 
 
+def analytics():
+    if not GA_ID:
+        return ""
+    return (f'<script async src="https://www.googletagmanager.com/gtag/js?id={GA_ID}"></script>\n'
+            "<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}"
+            f"gtag('js',new Date());gtag('config','{GA_ID}');</script>\n")
+
+
 def page(title, desc, body, path, prefix, og_type="website"):
     canonical = f"{SITE_URL}/{path}" if path else f"{SITE_URL}/"
     return f"""<!doctype html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
+{analytics()}<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{e(title)}</title>
 <meta name="description" content="{e(desc)}">
@@ -80,6 +91,7 @@ def page(title, desc, body, path, prefix, og_type="website"):
 <footer class="site-foot"><div class="wrap">
 <p>{SITE_NAME} · 매일 오전 발행</p>
 <p>각 기사의 저작권은 해당 매체에 있으며, 제목을 누르면 원문으로 이동합니다.</p>
+<p>이 사이트는 방문 통계 집계를 위해 구글 애널리틱스 쿠키를 사용합니다. 쿠키는 브라우저 설정에서 차단할 수 있습니다.</p>
 </div></footer>
 </body>
 </html>
