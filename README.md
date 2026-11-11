@@ -1,0 +1,1 @@
+# hoteldailybrief.github.io
