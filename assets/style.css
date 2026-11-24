@@ -90,3 +90,16 @@ a{color:inherit}
   .archive li a{flex-direction:column;gap:2px}
   .archive .d{min-width:0}
 }
+
+/* publisher card (SHINYOUNG SLP) */
+.company{display:flex;gap:28px;margin:40px 0 0;padding:22px 0 6px;border-top:3px solid #0F145A;flex-wrap:wrap}
+.company-left{flex:0 0 210px}
+.company-left img{display:block;width:200px;height:auto}
+.company-left p{margin:10px 0 0;font-size:13px;line-height:1.65;color:var(--muted)}
+.company-left a{color:#593CDA}
+.company-right{flex:1 1 280px}
+.company-right h2{margin:0 0 8px;font-size:15px;font-weight:700;color:#0F145A}
+.company-right ul{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 18px}
+.company-right li{font-size:14px;line-height:1.8;padding-left:14px;position:relative}
+.company-right li::before{content:"";position:absolute;left:0;top:.72em;width:6px;height:6px;background:#593CDA}
+@media (max-width:560px){.company-right ul{grid-template-columns:1fr}.numbers{grid-template-columns:repeat(2,minmax(0,1fr))}}

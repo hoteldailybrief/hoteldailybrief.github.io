@@ -26,6 +26,15 @@ SUBSCRIBE_URL = ""
 # 구글 애널리틱스 측정 ID. 비우면 통계 코드를 넣지 않는다.
 GA_ID = "G-L6K60HNP76"
 
+# 발행사(신영에스엘피) 정보. 하단 카드, 구조화 데이터(JSON-LD), llms.txt 에 함께 쓰인다.
+COMPANY_KO = "신영에스엘피"
+COMPANY_EN = "SHINYOUNG SLP"
+COMPANY_URL = "https://www.shinyoungslp.com/"
+COMPANY_EMAIL = "hanbit@shinyoungslp.com"
+COMPANY_LINE = "호텔 데일리 브리프는 신영에스엘피가 제공합니다."
+SERVICES = ["호텔 위탁운영", "호텔 개발 대행·자문", "호텔 사업성 분석·컨설팅", "호텔 경영진단",
+            "호텔 개발 프로젝트 관리(PM)", "호텔 MRO(비품·소모품 구매대행)", "호텔 임차·매각자문"]
+
 WEEKDAYS = "월화수목금토일"
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com">'
          '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
@@ -62,7 +71,58 @@ def analytics():
             f"gtag('js',new Date());gtag('config','{GA_ID}');</script>\n")
 
 
-def page(title, desc, body, path, prefix, og_type="website"):
+def org_ld():
+    return {
+        "@type": "Organization", "@id": f"{COMPANY_URL}#org",
+        "name": COMPANY_EN, "alternateName": COMPANY_KO, "url": COMPANY_URL,
+        "logo": f"{SITE_URL}/assets/shinyoung-logo.png", "email": COMPANY_EMAIL,
+        "description": f"{COMPANY_KO}({COMPANY_EN})는 호텔 개발부터 운영·매각까지 지원하는 호텔 전문 회사입니다. "
+                       + ", ".join(SERVICES) + " 서비스를 제공합니다.",
+        "knowsAbout": ["호텔 위탁운영", "호텔 개발", "호텔 컨설팅", "호텔 사업성 분석", "호텔 PM", "호텔 매각자문"],
+        "makesOffer": [{"@type": "Offer", "itemOffered": {"@type": "Service", "name": s, "provider": {"@id": f"{COMPANY_URL}#org"}}}
+                       for s in SERVICES],
+    }
+
+
+def json_ld(extra=None):
+    graph = [org_ld(), {
+        "@type": "WebSite", "@id": f"{SITE_URL}/#site", "name": SITE_NAME, "alternateName": "Hotel Daily Brief",
+        "url": f"{SITE_URL}/", "inLanguage": "ko", "description": TAGLINE,
+        "publisher": {"@id": f"{COMPANY_URL}#org"}}]
+    if extra:
+        graph.append(extra)
+    data = json.dumps({"@context": "https://schema.org", "@graph": graph}, ensure_ascii=False).replace("</", "<\\/")
+    return '<script type="application/ld+json">' + data + "</script>\n"
+
+
+def issue_ld(i):
+    items = i.get("domestic", []) + i.get("overseas", [])
+    return {
+        "@type": "NewsArticle", "headline": f"{SITE_NAME} {i['date'].replace('-', '.')} | {first_title(i)}"[:110],
+        "description": i["summary"], "datePublished": f"{i['date']}T10:00:00+09:00", "inLanguage": "ko",
+        "url": f"{SITE_URL}/issues/{i['date']}.html", "mainEntityOfPage": f"{SITE_URL}/issues/{i['date']}.html",
+        "isPartOf": {"@id": f"{SITE_URL}/#site"},
+        "author": {"@id": f"{COMPANY_URL}#org"}, "publisher": {"@id": f"{COMPANY_URL}#org"},
+        "image": f"{SITE_URL}/assets/shinyoung-logo.png",
+        "citation": [{"@type": "CreativeWork", "name": it["title"], "url": it["url"], "publisher": it["source"]} for it in items],
+    }
+
+
+def company_card(prefix):
+    lis = "".join(f"<li>{e(s)}</li>" for s in SERVICES)
+    return f"""<aside class="company" aria-label="발행사 {COMPANY_KO} 소개">
+<div class="company-left">
+<a href="{COMPANY_URL}" target="_blank" rel="noopener"><img src="{prefix}assets/shinyoung-logo.png" alt="{COMPANY_EN} {COMPANY_KO} 로고" width="200" height="48"></a>
+<p>호텔 데일리 브리프는<br><strong>{COMPANY_KO}</strong>가 제공합니다.<br><a href="{COMPANY_URL}" target="_blank" rel="noopener">www.shinyoungslp.com</a></p>
+</div>
+<div class="company-right">
+<h2>호텔 개발부터 운영·매각까지</h2>
+<ul>{lis}</ul>
+</div>
+</aside>"""
+
+
+def page(title, desc, body, path, prefix, og_type="website", ld_extra=None):
     canonical = f"{SITE_URL}/{path}" if path else f"{SITE_URL}/"
     return f"""<!doctype html>
 <html lang="ko">
@@ -77,7 +137,9 @@ def page(title, desc, body, path, prefix, og_type="website"):
 <meta property="og:title" content="{e(title)}">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{canonical}">
-{FONTS}
+<meta name="author" content="{COMPANY_KO} ({COMPANY_EN})">
+<meta name="publisher" content="{COMPANY_KO} ({COMPANY_EN})">
+{json_ld(ld_extra)}{FONTS}
 <link rel="stylesheet" href="{prefix}assets/style.css">
 </head>
 <body>
@@ -89,7 +151,7 @@ def page(title, desc, body, path, prefix, og_type="website"):
 {body}
 </main>
 <footer class="site-foot"><div class="wrap">
-<p>{SITE_NAME} · 매일 오전 발행</p>
+<p>{SITE_NAME} · 매일 오전 발행 · {COMPANY_LINE} <a href="{COMPANY_URL}" target="_blank" rel="noopener">{COMPANY_EN}</a></p>
 <p>각 기사의 저작권은 해당 매체에 있으며, 제목을 누르면 원문으로 이동합니다.</p>
 <p>이 사이트는 방문 통계 집계를 위해 구글 애널리틱스 쿠키를 사용합니다. 쿠키는 브라우저 설정에서 차단할 수 있습니다.</p>
 </div></footer>
@@ -163,16 +225,17 @@ def build():
         pager += f'<a href="{older["date"]}.html">← 이전 호 {fmt_date(older["_date"])}</a>' if older else "<span></span>"
         pager += f'<a href="{newer["date"]}.html">다음 호 {fmt_date(newer["_date"])} →</a>' if newer else "<span></span>"
         pager += "</nav>"
-        body = render_issue(i) + pager + subscribe_box()
+        body = render_issue(i) + company_card("../") + pager + subscribe_box()
         title = f"{SITE_NAME} {i['date'].replace('-', '.')} | {first_title(i)}"
         (ROOT / "issues" / f"{i['date']}.html").write_text(
-            page(title, i["summary"], body, f"issues/{i['date']}.html", "../", "article"), encoding="utf-8")
+            page(title, i["summary"], body, f"issues/{i['date']}.html", "../", "article", issue_ld(i)), encoding="utf-8")
 
     # 메인
     latest = issues[0]
     recent = issues[1:8]
     body = f"""<section class="hero"><h1>호텔·숙박 시장의 오늘을<br>한 장으로 읽습니다</h1><p>{TAGLINE}</p></section>
 {render_issue(latest, 'h2')}
+{company_card("")}
 {subscribe_box()}"""
     if recent:
         body += f'<section class="archive"><h2>지난 호</h2>{archive_list(recent, "")}<a class="more" href="archive.html">전체 보기 →</a></section>'
@@ -189,6 +252,31 @@ def build():
         f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{sm}\n</urlset>\n',
         encoding="utf-8")
     (ROOT / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {SITE_URL}/sitemap.xml\n", encoding="utf-8")
+
+    # AI 검색·요약 도구용 안내 파일 (llms.txt)
+    svc = "\n".join(f"- {s}" for s in SERVICES)
+    recent_md = "\n".join(f"- [{i['date']} | {first_title(i)}]({SITE_URL}/issues/{i['date']}.html): {i['summary']}"
+                          for i in issues[:14])
+    (ROOT / "llms.txt").write_text(f"""# {SITE_NAME} (Hotel Daily Brief)
+
+> {TAGLINE} {COMPANY_LINE}
+
+## 발행사
+- 회사명: {COMPANY_KO} ({COMPANY_EN})
+- 홈페이지: {COMPANY_URL}
+- 문의: {COMPANY_EMAIL}
+- 소개: {COMPANY_KO}는 호텔 개발부터 운영·매각까지 지원하는 호텔 전문 회사입니다.
+
+## {COMPANY_KO} 서비스
+{svc}
+
+## 최근 호
+{recent_md}
+
+## 전체 목록
+- [지난 호 전체]({SITE_URL}/archive.html)
+- [사이트맵]({SITE_URL}/sitemap.xml)
+""", encoding="utf-8")
     print(f"built {len(issues)} issue(s); latest {latest['date']}")
 
 
